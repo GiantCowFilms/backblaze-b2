@@ -12,6 +12,8 @@ use Psr\Http\Message\ResponseInterface;
  */
 class Client extends GuzzleClient
 {
+    public static $MAX_RETRY = 15;
+
     /**
      * Sends a response to the B2 API, automatically handling decoding JSON and errors.
      *
@@ -26,7 +28,11 @@ class Client extends GuzzleClient
      */
     public function request($method, $uri = null, array $options = [], $asJson = true)
     {
-        $response = parent::request($method, $uri, $options);
+        $retries = 0;
+        do {
+            $response = parent::request($method, $uri, $options);
+            $retries++;
+        } while ($response->getStatusCode() > 499 && $response->getStatusCode() < 600 && $retries < self::$MAX_RETRY);
 
         if ($response->getStatusCode() !== 200) {
             ErrorHandler::handleErrorResponse($response);
