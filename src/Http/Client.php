@@ -29,7 +29,18 @@ class Client extends GuzzleClient
     public function request($method, $uri = null, array $options = [], $asJson = true)
     {
         $retries = 0;
+        if (isset($options['body'])) {
+            $resource = $options['body'];
+        }
         do {
+            if (isset($options['body'])) {
+                // This doesn't need to be closed, it will be closed by Guzzle
+                // in the call to parent::request
+                $temp_resource = tmpfile();
+                stream_copy_to_stream($resource,$temp_resource);
+                rewind($temp_resource);
+                $options['body'] = $temp_resource;
+            }
             $response = parent::request($method, $uri, $options);
             $retries++;
         } while ($response->getStatusCode() > 499 && $response->getStatusCode() < 600 && $retries < self::$MAX_RETRY);
